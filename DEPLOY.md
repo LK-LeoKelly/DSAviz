@@ -1,75 +1,54 @@
-# 部署指南（给 kk 的图文步骤）
+# 部署指南
 
-目标：让任何人通过一个网址打开 DSAViz，而不是只能在你电脑的 localhost 看。
-方案：**GitHub（存代码）→ Vercel（免费托管 + 自动更新）**。不需要买服务器，域名可买可不买。
+目标：把本站部署为公开可访问的网址。方案：GitHub（托管代码）→ Vercel（免费托管 + 自动部署）。无需购买服务器。
 
 ---
 
-## 第一步：注册 / 登录 GitHub
-
-github.com 注册一个账号（免费的）。这是代码的"云端仓库"，也是你和 Vercel 之间的桥梁。
-
-## 第二步：把代码放上 GitHub
-
-1. 在 GitHub 右上角 **+** → **New repository**：
-   - 名字填 `dsaviz`，选 **Public**（私有也行，Vercel 都支持），**不要**勾任何初始化文件
-   - 创建后页面会显示几行命令，不用管它，往下看
-2. 在你电脑的项目文件夹里运行（我可以帮你跑，你只需要把 GitHub 用户名和仓库地址给我）：
+## 1. 推送代码到 GitHub
 
 ```bash
-git remote add origin https://github.com/你的用户名/dsaviz.git
+git remote add origin https://github.com/<用户名>/DSAviz.git
 git push -u origin main
 ```
 
-第一次 push 会弹出登录窗口，按提示登录一次即可。
+`config.json`（本地密钥）已在 .gitignore 中，不会被提交。
 
-> 密钥安全：项目里的 `config.json` 已经在 .gitignore 里，**永远不会被上传**。
+## 2. Vercel 部署
 
-## 第三步：Vercel 一键部署
+1. vercel.com 使用 GitHub 登录 → Add New → Project → 导入本仓库
+2. 框架会被自动识别为 Vite，保持默认设置，点击 Deploy
+3. 部署完成得到 `https://<项目名>.vercel.app`
 
-1. 打开 vercel.com → **Sign up with GitHub**（用刚注册好的 GitHub 登录，免费）
-2. **Add New → Project**，列表里选 `dsaviz`，点 **Import**
-3. 它自动识别出 Vite 项目，**所有设置保持默认**，直接点 **Deploy**
-4. 等 1~2 分钟，得到网址 `https://dsaviz-xxx.vercel.app` —— 这就是公开地址，发给谁都能打开
+## 3. 配置 AI 助教（可选）
 
-## 第四步（可选）：让线上也能用 AI 助教
-
-Vercel 项目页 → **Settings → Environment Variables**，添加一条：
+项目 → Settings → Environment Variables，添加：
 
 | Name | Value |
 |---|---|
-| `LLM_API_KEY` | 你的 DeepSeek 密钥（sk- 开头那串） |
+| `LLM_API_KEY` | DeepSeek 接口密钥（sk- 开头） |
 
-添加后点 **Deployments → 最新一条 → Redeploy**，助教就上线了。
-不配的话：全站所有功能正常，只是助教显示"暂时离线"。
+保存后到 Deployments 对最新一条执行 Redeploy，使变量生效。未配置时网站其余功能全部正常，仅助教对话显示离线。
 
-## 之后怎么继续改？
+## 4. 绑定自有域名（国内访问必需）
 
-**部署不是终点，开发完全照旧：**
+`*.vercel.app` 默认域名在中国大陆无法稳定访问，需要绑定自有域名：
 
-- 你随时让我改任何功能，我改完本地验证后执行 `git push`，**Vercel 检测到推送会自动重新构建上线**，1~2 分钟后网址里就是新版
-- 本地 `npm run dev` 继续用，和线上互不影响
-- 想看某个历史版本：Vercel 的 Deployments 列表里每次部署都在，可一键回滚
+1. 在腾讯云/阿里云注册域名（如 `.top` / `.cn`，首年约 9~30 元），完成实名认证
+2. Vercel 项目 → Settings → Domains → 添加该域名
+3. 在域名服务商的 DNS 解析中添加 CNAME 记录：
+   - 主机记录：`@` 与 `www`
+   - 记录值：`cname-china.vercel-dns.com`（Vercel 的中国大陆优化线路，勿用默认的 `cname.vercel-dns.com`）
+4. 等待解析生效（约 10 分钟至数小时）。服务器位于境外，无需 ICP 备案
 
-## 域名（方案一：国内稳定访问的关键）
+## 5. 持续更新
 
-**注意：`xxx.vercel.app` 默认域名在中国大陆基本打不开（DNS 污染），必须绑自有域名才能给评委/同学访问。**
+push 到 GitHub 的 main 分支后，Vercel 自动重新构建并发布，约 1~2 分钟生效。Deployments 列表保留历史版本，可一键回滚。
 
-1. **买域名**：腾讯云（dnspod.cloud.tencent.com）或阿里云，搜 `dsaviz` / 你喜欢的名字，挑 `.top` / `.cn`（首年 9~30 元）。购买时要实名认证（上传身份证，几小时内通过，这是国家规定，所有域名商都要）
-2. **Vercel 里绑定**：项目 → **Settings → Domains** → 输入你的域名（如 `dsaviz.top`）→ Add
-3. **域名商那里加解析**（最关键的一步，决定国内能不能打开）：
-   - 到域名商的"域名解析"页面，添加一条记录：
-     - 主机记录：`@`（或 `www`，两个都加更好）
-     - 记录类型：**CNAME**
-     - 记录值：**`cname-china.vercel-dns.com`** ← 这是 Vercel 官方的中国大陆优化线路，不要填它默认推荐的 `cname.vercel-dns.com`
-   - 等 10 分钟~几小时生效，国内各地就能稳定打开了
-4. **不需要 ICP 备案**：服务器在境外，政策上不强制
-
-## 费用总结
+## 费用
 
 | 项目 | 费用 |
 |---|---|
 | GitHub 仓库 | 免费 |
-| Vercel 托管 + 云函数 | 免费额度（个人项目用不完） |
-| 自有域名 | 约 9~30 元首年（.top/.cn），续费 30~70 元/年 |
-| DeepSeek API | 按用量计费，答疑场景一次对话约几分钱，充值 10 元能用很久 |
+| Vercel 托管 + 云函数 | 免费额度 |
+| 自有域名 | 约 9~30 元首年 |
+| DeepSeek API | 按量计费，答疑场景单次约几分钱 |

@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router'
-import { ArrowRight, GitBranch, MousePointerClick, Code2, GraduationCap, Route, FlaskConical, Swords, Boxes } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { ALGO_MAP, ALGOS, CATEGORIES } from '../engine/catalog'
 import { CHAPTERS, TOTAL_LESSONS } from '../content/chapters'
 import { usePlayer } from '../hooks/usePlayer'
@@ -45,41 +45,6 @@ function MiniDemo() {
   )
 }
 
-const FEATURES = [
-  {
-    icon: GitBranch, title: '指针级忠实',
-    desc: '画面由事件流逐步推导：p / q / s 的每一次指向、每一次改接、每一次 free，都与 C 代码逐行对应，不跳步、不脑补。',
-  },
-  {
-    icon: Code2, title: '源码逐行对照',
-    desc: '右侧源码面板与动画严格同步——动画播到哪一步，代码亮到哪一行。术语对齐课程教材：头结点、首元结点、前驱、位序。',
-  },
-  {
-    icon: MousePointerClick, title: '逐帧可控',
-    desc: '空格播放、← → 逐帧进退、进度条拖动、0.5×–4× 变速。每个关键瞬间都可以停下来盯清楚。',
-  },
-  {
-    icon: Route, title: '学习路径',
-    desc: '六章二十五课对齐课程主线：概念 → 演示 → 小测，进度自动记录。从"看得懂"到"记得住"。',
-  },
-  {
-    icon: FlaskConical, title: '自由实验室',
-    desc: '全部算法支持自定义输入：换一组数据、换一个插入位置，立刻重跑一遍——用自己的例子验证理解。',
-  },
-  {
-    icon: GraduationCap, title: 'AI 助教',
-    desc: '看不懂就右下角问一句。AI 助教知道当前正在演示的算法与步骤，结合画面针对性讲解。',
-  },
-  {
-    icon: Swords, title: '对比赛跑', to: '/compare',
-    desc: '同一份数据，两种算法同步开跑：比较/交换次数实时计数、完赛名次、实测战报——O(n²) 与 O(n log n) 的差距是数出来的，不是背出来的。',
-  },
-  {
-    icon: Boxes, title: '演算沙盒', to: '/playground',
-    desc: '结构状态连续保留的链表 / BST 沙盘：头插、尾插、按位删、中序验证……上一个操作的结果就是下一个操作的起点，像在课堂上亲手演算。',
-  },
-]
-
 export default function HomePage() {
   const { done } = useProgress()
   return (
@@ -118,38 +83,6 @@ export default function HomePage() {
         <MiniDemo />
       </section>
 
-      {/* 特性 */}
-      <section className="border-t border-slate-200/70 bg-white">
-        <div className="mx-auto max-w-[1200px] px-5 py-14">
-          <h2 className="text-[21px] font-bold text-slate-900 tracking-tight">为"真正学会"而设计</h2>
-          <p className="text-[13px] text-slate-400 mt-1">不做炫技的动画，做经得起逐帧审计的教学</p>
-          <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map((f) => {
-              const cls = 'rounded-2xl border border-slate-200/80 p-5 hover:border-indigo-200 hover:shadow-[0_8px_30px_-12px_rgba(79,70,229,.18)] transition group block'
-              const inner = (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition">
-                      <f.icon size={17} />
-                    </div>
-                    {'to' in f && f.to && (
-                      <span className="text-[11px] font-semibold text-indigo-500 opacity-0 group-hover:opacity-100 transition inline-flex items-center gap-0.5">
-                        进入 <ArrowRight size={11} />
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="mt-3.5 text-[14.5px] font-bold text-slate-900">{f.title}</h3>
-                  <p className="mt-1.5 text-[12.5px] leading-[1.8] text-slate-500">{f.desc}</p>
-                </>
-              )
-              return 'to' in f && f.to
-                ? <Link key={f.title} to={f.to} className={cls}>{inner}</Link>
-                : <div key={f.title} className={cls}>{inner}</div>
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* 算法图鉴预览 */}
       <section className="mx-auto max-w-[1200px] px-5 py-14">
         <div className="flex items-end justify-between">
@@ -182,7 +115,6 @@ export default function HomePage() {
       <footer className="border-t border-slate-200/70 bg-white">
         <div className="mx-auto max-w-[1200px] px-5 py-8 flex flex-wrap items-center gap-4 text-[11.5px] text-slate-400">
           <span className="font-semibold text-slate-500">DSAViz · 看得见的算法</span>
-          <span>2026 第十四届全国大学生数字媒体科技作品及创意竞赛 · 智慧教育与科普创作</span>
           <span className="ml-auto font-mono">React + TypeScript · 事件流驱动的教学可视化</span>
         </div>
       </footer>

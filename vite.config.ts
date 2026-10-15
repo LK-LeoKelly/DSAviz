@@ -2,7 +2,6 @@ import path from "path"
 import fs from "fs"
 import react from "@vitejs/plugin-react"
 import { defineConfig, type Plugin } from "vite"
-import { inspectAttr } from 'kimi-plugin-inspect-react'
 
 // AI 导师代理：浏览器 -> /api/chat -> config.json 里配置的 OpenAI 兼容接口（默认 DeepSeek）
 // 密钥只存在于本机 config.json（已 gitignore），不会打包进前端
@@ -53,7 +52,7 @@ function aiTutorPlugin(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
-  plugins: [inspectAttr(), react(), aiTutorPlugin()],
+  plugins: [react(), aiTutorPlugin()],
   server: {
     port: 3000,
     strictPort: false,

@@ -8,7 +8,6 @@ const NAV = [
   { to: '/lab', label: '实验室' },
   { to: '/compare', label: '对比赛跑' },
   { to: '/playground', label: '演算沙盒' },
-  { to: '/about', label: '关于作品' },
 ]
 
 export default function SiteHeader() {
@@ -35,7 +34,6 @@ export default function SiteHeader() {
           ))}
         </nav>
         <div className="flex-1" />
-        <span className="hidden md:inline text-[11px] font-mono text-slate-300">看得见的算法</span>
       </div>
     </header>
   )
