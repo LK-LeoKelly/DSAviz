@@ -7,6 +7,7 @@ import LessonPage from './pages/LessonPage'
 import LabPage from './pages/LabPage'
 import ComparePage from './pages/ComparePage'
 import PlaygroundPage from './pages/PlaygroundPage'
+import TourDriver from './tour/TourDriver'
 
 export default function App() {
   const loc = useLocation()
@@ -24,9 +25,11 @@ export default function App() {
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/compare/:left/:right" element={<ComparePage />} />
         <Route path="/playground" element={<PlaygroundPage />} />
+        <Route path="/tour" element={<div className="h-screen" />} />
         <Route path="*" element={<HomePage />} />
       </Routes>
       <AiTutor />
+      <TourDriver />
     </div>
   )
 }

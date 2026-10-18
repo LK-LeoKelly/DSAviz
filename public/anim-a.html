@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>动图页 A · M1-M3</title>
+<style>
+  /* ============ 画布：固定 1920×1080，等比缩放适配 ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #05070d; cursor: none; }
+  #stage {
+    position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px;
+    transform: translate(-50%, -50%) scale(var(--zoom, 1));
+    transform-origin: center center;
+    background: radial-gradient(1200px 800px at 30% 20%, #101a33 0%, #0a1122 45%, #070b16 100%);
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+    color: #e8eef9; overflow: hidden;
+  }
+  .mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+
+  /* 网格底纹 */
+  #grid {
+    position: absolute; inset: 0; opacity: .35; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(129,140,248,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(129,140,248,.05) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(900px 600px at 50% 45%, black 30%, transparent 75%);
+  }
+
+  .scene { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+
+  /* ============ M1：代码钩子 ============ */
+  #m1 .codecard {
+    position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%);
+    width: 980px; border-radius: 18px; background: #0c1322;
+    border: 1px solid rgba(129,140,248,.22);
+    box-shadow: 0 40px 120px rgba(0,0,0,.6), 0 0 80px rgba(99,102,241,.08);
+    overflow: hidden;
+  }
+  #m1 .codebar {
+    display: flex; align-items: center; gap: 8px; padding: 14px 20px;
+    background: rgba(255,255,255,.03); border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  #m1 .dot { width: 14px; height: 14px; border-radius: 50%; }
+  #m1 .filename { margin-left: 12px; font-size: 15px; color: #8b9bc0; letter-spacing: .04em; }
+  #m1 .codebody { padding: 34px 40px 40px; font-size: 34px; line-height: 1.9; }
+  #m1 .ln { display: flex; opacity: 0; }
+  #m1 .lnno { width: 56px; text-align: right; padding-right: 28px; color: #3d4a6b; user-select: none; }
+  #m1 .tk-c { color: #5b6b8f; }            /* 注释 */
+  #m1 .tk-v { color: #93c5fd; }            /* 变量 */
+  #m1 .tk-p { color: #e8eef9; }            /* 标点 */
+  #m1 .caret { display: inline-block; width: 18px; height: 42px; background: #818cf8; vertical-align: -6px; animation: blink .8s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  #m1 .swap {
+    position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%);
+    width: 980px; height: 0; pointer-events: none;
+  }
+  #m1 .swap svg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); overflow: visible; }
+  #m1 .bigq {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    font-size: 120px; font-weight: 800; color: #fbbf24; letter-spacing: .02em;
+    text-shadow: 0 0 60px rgba(251,191,36,.35); opacity: 0; white-space: nowrap;
+  }
+
+  /* ============ M2：重要性信息卡 ============ */
+  #m2 .kicker {
+    position: absolute; left: 50%; top: 96px; transform: translateX(-50%);
+    font-size: 26px; letter-spacing: .5em; color: #8b9bc0; text-indent: .5em; opacity: 0;
+  }
+  #m2 .card {
+    position: absolute; left: 50%; top: 56%; transform: translate(-50%, -50%);
+    width: 1240px; height: 640px; border-radius: 28px; opacity: 0;
+    background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+    border: 1px solid rgba(255,255,255,.09);
+    box-shadow: 0 40px 120px rgba(0,0,0,.55);
+    display: flex; overflow: hidden;
+  }
+  #m2 .card .left {
+    width: 460px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    border-right: 1px solid rgba(255,255,255,.07); background: rgba(0,0,0,.18);
+  }
+  #m2 .bignum { font-size: 150px; font-weight: 800; line-height: 1; color: #818cf8; text-shadow: 0 0 70px rgba(129,140,248,.4); }
+  #m2 .bignum .unit { font-size: 54px; color: #5b6b8f; font-weight: 600; }
+  #m2 .biglabel { margin-top: 22px; font-size: 24px; color: #8b9bc0; letter-spacing: .2em; }
+  #m2 .card .right { flex: 1; padding: 64px 72px; display: flex; flex-direction: column; justify-content: center; }
+  #m2 .rtitle { font-size: 44px; font-weight: 700; margin-bottom: 18px; }
+  #m2 .rdesc { font-size: 27px; line-height: 1.75; color: #b9c6e2; }
+  #m2 .rdesc em { font-style: normal; color: #fbbf24; font-weight: 700; }
+  #m2 .viz { margin-top: 40px; }
+  /* 分值堆叠条 */
+  #m2 .bars { display: flex; flex-direction: column; gap: 14px; }
+  #m2 .bar-row { display: flex; align-items: center; gap: 16px; font-size: 20px; color: #8b9bc0; }
+  #m2 .bar-row .name { width: 150px; text-align: right; }
+  #m2 .bar-row .track { flex: 1; height: 26px; background: rgba(255,255,255,.06); border-radius: 6px; overflow: hidden; }
+  #m2 .bar-row .fill { height: 100%; width: 0; border-radius: 6px; background: #3b4a75; }
+  #m2 .bar-row.hot .fill { background: linear-gradient(90deg, #6366f1, #818cf8); box-shadow: 0 0 24px rgba(99,102,241,.6); }
+  #m2 .bar-row.hot .name, #m2 .bar-row.hot .val { color: #c7d2fe; font-weight: 700; }
+  /* 保研进度条 */
+  #m2 .weight-track { height: 44px; border-radius: 10px; background: rgba(255,255,255,.06); position: relative; overflow: hidden; }
+  #m2 .weight-fill { position: absolute; inset: 0; width: 0; background: linear-gradient(90deg, #6366f1, #a5b4fc); border-radius: 10px; }
+  #m2 .weight-band { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, rgba(251,191,36,.9) 0 14px, rgba(251,191,36,.55) 14px 28px); opacity: 0; }
+  #m2 .weight-note { margin-top: 16px; font-size: 20px; color: #8b9bc0; }
+  /* 题单滚屏 */
+  #m2 .qlist { height: 220px; overflow: hidden; position: relative; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.25); }
+  #m2 .qlist .inner { position: absolute; left: 0; right: 0; top: 0; padding: 18px 28px; }
+  #m2 .qitem { font-size: 22px; color: #b9c6e2; padding: 9px 0; border-bottom: 1px dashed rgba(255,255,255,.07); }
+  #m2 .qitem .tag { color: #818cf8; margin-right: 14px; }
+  #m2 .qlist::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7,11,22,.9), transparent 30%, transparent 70%, rgba(7,11,22,.9)); }
+  /* 学科连线 */
+  #m2 .deps { position: relative; height: 260px; }
+  #m2 .dep-center {
+    position: absolute; left: 70px; top: 50%; transform: translateY(-50%);
+    padding: 22px 34px; border-radius: 16px; font-size: 30px; font-weight: 800;
+    background: linear-gradient(135deg, #6366f1, #818cf8); color: #fff;
+    box-shadow: 0 0 60px rgba(99,102,241,.5);
+  }
+  #m2 .dep-node {
+    position: absolute; padding: 14px 24px; border-radius: 12px; font-size: 24px;
+    border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.05); color: #c9d4ef; opacity: 0;
+  }
+  #m2 .deps svg { position: absolute; inset: 0; overflow: visible; }
+  #m2 .deps path { stroke: rgba(129,140,248,.7); stroke-width: 2.5; fill: none; stroke-dasharray: 400; stroke-dashoffset: 400; }
+
+  /* ============ M3：痛点 ============ */
+  #m3 .book {
+    position: absolute; left: 150px; top: 50%; transform: translateY(-50%);
+    width: 780px; height: 620px; border-radius: 20px; opacity: 0;
+    background: #f4f1e8; color: #2b2f36; overflow: hidden;
+    box-shadow: 0 40px 100px rgba(0,0,0,.55);
+  }
+  #m3 .book .hd { padding: 26px 36px 0; font-size: 20px; color: #8a8577; letter-spacing: .3em; }
+  #m3 .book .figs { display: flex; align-items: center; justify-content: space-around; padding: 34px 20px 0; }
+  #m3 .book .fig { width: 300px; }
+  #m3 .book .fig .cap { text-align: center; font-size: 18px; color: #8a8577; margin-top: 14px; }
+  #m3 .book .qm { font-size: 90px; color: #b8b09a; align-self: center; font-weight: 300; }
+  #m3 .book .foot { position: absolute; bottom: 26px; left: 0; right: 0; text-align: center; font-size: 21px; color: #6e6a5c; }
+  #m3 .pain { position: absolute; right: 150px; top: 50%; transform: translateY(-50%); width: 620px; display: flex; flex-direction: column; gap: 34px; }
+  #m3 .pain .p {
+    padding: 34px 40px; border-radius: 20px; font-size: 33px; font-weight: 700;
+    background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    border: 1px solid rgba(248,113,113,.25); color: #fecaca;
+    box-shadow: 0 24px 70px rgba(0,0,0,.45); opacity: 0;
+    display: flex; align-items: center; gap: 22px;
+  }
+  #m3 .pain .p .no {
+    flex: none; width: 54px; height: 54px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(248,113,113,.16); color: #f87171; font-size: 26px; font-weight: 800;
+  }
+  #m3 .pain .p .sub { display: block; font-size: 21px; font-weight: 400; color: #b9c6e2; margin-top: 8px; }
+  #m3 .finalq {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    font-size: 76px; font-weight: 800; color: #e8eef9; opacity: 0; white-space: nowrap;
+    text-shadow: 0 0 60px rgba(129,140,248,.35);
+  }
+  #m3 .dim { position: absolute; inset: 0; background: #05070d; opacity: 0; }
+
+  /* 段落指示器（按 H 隐藏） */
+  #hud {
+    position: absolute; right: 34px; bottom: 26px; font-size: 16px; color: #54628a;
+    letter-spacing: .1em; z-index: 99;
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="grid"></div>
+
+  <!-- M1 钩子：那两行代码 -->
+  <section class="scene" id="m1">
+    <div class="codecard">
+      <div class="codebar">
+        <span class="dot" style="background:#f87171"></span>
+        <span class="dot" style="background:#fbbf24"></span>
+        <span class="dot" style="background:#34d399"></span>
+        <span class="filename mono">list_insert.c</span>
+      </div>
+      <div class="codebody mono">
+        <div class="ln" id="m1-l1"><span class="lnno">1</span><span class="tk-c">// p 指向第 i 个位置的前驱</span></div>
+        <div class="ln" id="m1-l2"><span class="lnno">2</span><span class="tk-v">s-&gt;next</span><span class="tk-p"> = </span><span class="tk-v">p-&gt;next</span><span class="tk-p">;</span><span id="m1-hl2"></span></div>
+        <div class="ln" id="m1-l3"><span class="lnno">3</span><span class="tk-v">p-&gt;next</span><span class="tk-p"> = </span><span class="tk-v">s</span><span class="tk-p">;</span><span id="m1-hl3"></span></div>
+        <div class="ln" id="m1-l4"><span class="lnno">4</span><span class="caret"></span></div>
+      </div>
+    </div>
+    <div class="swap" id="m1-swap">
+      <svg width="980" height="340" viewBox="0 0 980 340">
+        <g id="m1-swapg" opacity="0">
+          <path id="m1-x1" d="M 380 105 L 600 235" stroke="#f87171" stroke-width="14" stroke-linecap="round" fill="none"/>
+          <path id="m1-x2" d="M 600 105 L 380 235" stroke="#f87171" stroke-width="14" stroke-linecap="round" fill="none"/>
+        </g>
+      </svg>
+    </div>
+    <div class="bigq" id="m1-bigq">顺序能换吗？</div>
+  </section>
+
+  <!-- M2 重要性：四张信息卡 -->
+  <section class="scene" id="m2">
+    <div class="kicker" id="m2-kicker">这门课有多重要</div>
+
+    <div class="card" id="m2-c1">
+      <div class="left">
+        <div class="bignum"><span id="m2-n1">0</span><span class="unit"> / 150 分</span></div>
+        <div class="biglabel">考研 408</div>
+      </div>
+      <div class="right">
+        <div class="rtitle">计算机学科专业基础综合</div>
+        <div class="rdesc">教育部统一命题，<em>全国 120 余所高校</em>的计算机专业采用。数据结构占 45 分——<em>与组成原理并列第一</em>。</div>
+        <div class="viz bars">
+          <div class="bar-row hot"><span class="name">数据结构</span><div class="track"><div class="fill" data-w="100"></div></div><span class="val">45</span></div>
+          <div class="bar-row"><span class="name">组成原理</span><div class="track"><div class="fill" data-w="100"></div></div><span class="val">45</span></div>
+          <div class="bar-row"><span class="name">操作系统</span><div class="track"><div class="fill" data-w="78"></div></div><span class="val">35</span></div>
+          <div class="bar-row"><span class="name">计算机网络</span><div class="track"><div class="fill" data-w="56"></div></div><span class="val">25</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="m2-c2">
+      <div class="left">
+        <div class="bignum"><span id="m2-n2">0</span><span class="unit"> %</span></div>
+        <div class="biglabel">保研机试权重</div>
+      </div>
+      <div class="right">
+        <div class="rtitle">夏令营 · 预推免机试</div>
+        <div class="rdesc">链表、栈、树、图是机试<em>必考内容</em>；机试成绩在录取中的权重，能占到<em>三到五成</em>。</div>
+        <div class="viz">
+          <div class="weight-track"><div class="weight-fill" id="m2-wf"></div><div class="weight-band" id="m2-wb" style="left:30%;width:20%"></div></div>
+          <div class="weight-note">机试权重区间：30% – 50%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="m2-c3">
+      <div class="left">
+        <div class="bignum" style="font-size:120px">必考</div>
+        <div class="biglabel">求职笔试面试</div>
+      </div>
+      <div class="right">
+        <div class="rtitle">IT 公司技术考核</div>
+        <div class="rdesc">笔试、面试里的算法题是<em>保留节目</em>——考的全部是这门课的内容。</div>
+        <div class="viz qlist"><div class="inner" id="m2-qscroll">
+          <div class="qitem"><span class="tag">链表</span>反转链表 / 合并两个有序链表</div>
+          <div class="qitem"><span class="tag">树</span>二叉树的层序遍历 / 最近公共祖先</div>
+          <div class="qitem"><span class="tag">栈</span>用栈实现队列 / 括号匹配</div>
+          <div class="qitem"><span class="tag">排序</span>手写快速排序并分析复杂度</div>
+          <div class="qitem"><span class="tag">图</span>最短路径 / 拓扑排序</div>
+          <div class="qitem"><span class="tag">哈希</span>两数之和 / LRU 缓存</div>
+          <div class="qitem"><span class="tag">堆</span>数据流中的第 K 大元素</div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="card" id="m2-c4">
+      <div class="left">
+        <div class="bignum" style="font-size:96px; line-height:1.15">先修<br/>基础</div>
+        <div class="biglabel">学科地位</div>
+      </div>
+      <div class="right">
+        <div class="rtitle">后面每门课，都要用到它</div>
+        <div class="rdesc">操作系统、数据库、编译原理的<em>先修基础</em>——这门课没学明白，后面都要还债。</div>
+        <div class="viz deps">
+          <svg viewBox="0 0 640 260" width="100%" height="100%">
+            <path class="dpath" d="M 250 130 C 360 130 380 40 470 40"/>
+            <path class="dpath" d="M 250 130 C 360 130 380 103 470 103"/>
+            <path class="dpath" d="M 250 130 C 360 130 380 166 470 166"/>
+            <path class="dpath" d="M 250 130 C 360 130 380 229 470 229"/>
+          </svg>
+          <div class="dep-center">数据结构</div>
+          <div class="dep-node" style="left:480px;top:14px">操作系统</div>
+          <div class="dep-node" style="left:480px;top:77px">数据库</div>
+          <div class="dep-node" style="left:480px;top:140px">编译原理</div>
+          <div class="dep-node" style="left:480px;top:203px">算法设计</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- M3 痛点 -->
+  <section class="scene" id="m3">
+    <div class="book" id="m3-book">
+      <div class="hd">教材 · 静态图示</div>
+      <div class="figs">
+        <div class="fig">
+          <svg viewBox="0 0 300 150" width="300">
+            <g font-family="sans-serif" font-size="14">
+              <rect x="10" y="50" width="70" height="40" fill="none" stroke="#555" stroke-width="2"/>
+              <text x="45" y="75" text-anchor="middle" fill="#333">a₁</text>
+              <line x1="80" y1="70" x2="110" y2="70" stroke="#555" stroke-width="2" marker-end="url(#ah)"/>
+              <rect x="110" y="50" width="70" height="40" fill="none" stroke="#555" stroke-width="2"/>
+              <text x="145" y="75" text-anchor="middle" fill="#333">a₂</text>
+              <line x1="180" y1="70" x2="210" y2="70" stroke="#555" stroke-width="2" marker-end="url(#ah)"/>
+              <rect x="210" y="50" width="70" height="40" fill="none" stroke="#555" stroke-width="2"/>
+              <text x="245" y="75" text-anchor="middle" fill="#333">a₃</text>
+              <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#555"/></marker></defs>
+            </g>
+          </svg>
+          <div class="cap">图 2-5　插入前</div>
+        </div>
+        <div class="qm">?</div>
+        <div class="fig">
+          <svg viewBox="0 0 300 150" width="300">
+            <g font-family="sans-serif" font-size="14">
+              <rect x="10" y="30" width="60" height="34" fill="none" stroke="#555" stroke-width="2"/>
+              <text x="40" y="52" text-anchor="middle" fill="#333">a₁</text>
+              <rect x="100" y="30" width="60" height="34" fill="none" stroke="#555" stroke-width="2"/>
+              <text x="130" y="52" text-anchor="middle" fill="#333">s</text>
+              <rect x="190" y="30" width="60" height="34" fill="none" stroke="#555" stroke-width="2"/>
+              <text x="220" y="52" text-anchor="middle" fill="#333">a₂</text>
+              <line x1="70" y1="47" x2="96" y2="47" stroke="#555" stroke-width="2"/>
+              <line x1="160" y1="47" x2="186" y2="47" stroke="#555" stroke-width="2"/>
+              <line x1="250" y1="47" x2="276" y2="47" stroke="#999" stroke-width="2" stroke-dasharray="4 3"/>
+              <rect x="276" y="30" width="24" height="34" fill="none" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+            </g>
+          </svg>
+          <div class="cap">图 2-6　插入后</div>
+        </div>
+      </div>
+      <div class="foot">—— 中间发生了什么？全靠想象 ——</div>
+    </div>
+    <div class="pain">
+      <div class="p" id="m3-p1"><span class="no">1</span><span>指针经不起细看<span class="sub">动画很流畅，指向却不符合真实代码语义</span></span></div>
+      <div class="p" id="m3-p2"><span class="no">2</span><span>只看不能练<span class="sub">看完觉得懂了，做题还是写不出</span></span></div>
+      <div class="p" id="m3-p3"><span class="no">3</span><span>内容固定，跟不上课堂<span class="sub">预设的演示，对不上你自己老师的进度</span></span></div>
+    </div>
+    <div class="dim" id="m3-dim"></div>
+    <div class="finalq" id="m3-finalq">缺的到底是什么？</div>
+  </section>
+
+  <div id="hud">READY · 按 1/2/3 分段 · 空格播放 · R 重播 · H 隐藏此提示</div>
+</div>
+
+<script>
+/* ============ 等比缩放 ============ */
+function fit() {
+  const z = Math.min(innerWidth / 1920, innerHeight / 1080);
+  document.getElementById('stage').style.setProperty('--zoom', z);
+}
+fit(); addEventListener('resize', fit);
+
+/* ============ 时间轴工具 ============ */
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+let playing = false, currentSeg = 0;
+
+function tween({ from = 0, to = 1, dur = 600, ease = t => 1 - Math.pow(1 - t, 3), step }) {
+  return new Promise(res => {
+    const t0 = performance.now();
+    (function f() {
+      const t = Math.min(1, (performance.now() - t0) / dur);
+      step(from + (to - from) * ease(t));
+      if (t < 1) setTimeout(f, 16); else res();
+    })();
+  });
+}
+const css = (el, props) => Object.assign(el.style, props);
+const $ = (id) => document.getElementById(id);
+
+async function show(scene) {
+  await tween({ dur: 500, step: v => css(scene, { opacity: v, pointerEvents: 'auto' }) });
+}
+async function hide(scene, dur = 500) {
+  await tween({ dur, step: v => css(scene, { opacity: 1 - v }) });
+  scene.style.pointerEvents = 'none';
+}
+
+/* 打字机：逐行显示 */
+async function typeLine(el, cps = 28) {
+  const target = el.querySelector('span:last-child');
+  const html = target.innerHTML;
+  const text = target.textContent;
+  target.innerHTML = '';
+  el.style.opacity = 1;
+  // 按纯文本打，再换回富文本（避免标签被截断）
+  for (let i = 0; i <= text.length; i++) {
+    target.textContent = text.slice(0, i);
+    await wait(1000 / cps);
+  }
+  target.innerHTML = html;
+}
+
+/* ============ M1 ============ */
+async function seg1() {
+  const s = $('m1');
+  css(s, { opacity: 0, pointerEvents: 'auto' });
+  // 重置
+  ['m1-l1', 'm1-l2', 'm1-l3', 'm1-l4'].forEach(id => { $(id).style.opacity = 0; });
+  $('m1-l4').style.opacity = 0;
+  css($('m1-swapg'), { opacity: 0 });
+  css($('m1-bigq'), { opacity: 0, transform: 'translate(-50%,-50%) scale(1.25)' });
+  ['m1-x1', 'm1-x2'].forEach(id => { const p = $(id); const L = p.getTotalLength(); p.style.strokeDasharray = L; p.style.strokeDashoffset = L; });
+
+  await show(s);
+  await wait(500);
+  await typeLine($('m1-l1'), 22);
+  await wait(250);
+  await typeLine($('m1-l2'), 26);
+  await wait(250);
+  await typeLine($('m1-l3'), 26);
+  $('m1-l4').style.opacity = 1;
+  await wait(1500);
+
+  // 红叉：交换两行 = 错误
+  $('m1-swapg').style.opacity = 1;
+  for (const id of ['m1-x1', 'm1-x2']) {
+    const p = $(id);
+    await tween({ dur: 380, step: v => p.style.strokeDashoffset = p.getTotalLength() * (1 - v) });
+  }
+  await wait(1100);
+
+  // 大字砸入
+  const q = $('m1-bigq');
+  await tween({ dur: 620, ease: t => 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2), step: v => css(q, { opacity: Math.min(1, v), transform: `translate(-50%,-50%) scale(${1.25 - .25 * v})` }) });
+  // 轻颤
+  for (let i = 0; i < 3; i++) {
+    await tween({ dur: 70, step: v => css(q, { transform: `translate(calc(-50% + ${(i % 2 ? -6 : 6) * v}px),-50%)` }) });
+  }
+  css(q, { transform: 'translate(-50%,-50%)' });
+  await wait(2600);
+  // 收尾：推进+淡出
+  await Promise.all([
+    tween({ dur: 700, step: v => css($('m1'), { opacity: 1 - v, filter: `blur(${10 * v}px)`, transform: `scale(${1 + .08 * v})` }) }),
+  ]);
+  css($('m1'), { filter: '', transform: '', pointerEvents: 'none' });
+}
+
+/* ============ M2 ============ */
+async function numRoll(el, to, dur = 1200) {
+  await tween({ dur, step: v => el.textContent = Math.round(to * v) });
+}
+async function cardIn(card, fromRight = true) {
+  await tween({
+    dur: 700,
+    step: v => css(card, { opacity: v, transform: `translate(calc(-50% + ${(1 - v) * (fromRight ? 140 : 0)}px), calc(-50% + ${(1 - v) * (fromRight ? 0 : 60)}px)) scale(${.94 + .06 * v})` })
+  });
+}
+async function cardOut(card) {
+  await tween({
+    dur: 550,
+    step: v => css(card, { opacity: 1 - v, transform: `translate(calc(-50% - ${80 * v}px), -50%) scale(${1 - .08 * v})` })
+  });
+}
+function resetCard(card) { css(card, { opacity: 0, transform: 'translate(-50%,-50%)' }); }
+
+async function seg2() {
+  const s = $('m2');
+  ['m2-c1', 'm2-c2', 'm2-c3', 'm2-c4'].forEach(id => resetCard($(id)));
+  css($('m2-kicker'), { opacity: 0 });
+  s.querySelectorAll('.fill').forEach(f => f.style.width = 0);
+  $('m2-wf').style.width = 0; $('m2-wb').style.opacity = 0;
+  $('m2-qscroll').style.transform = 'translateY(0)';
+  s.querySelectorAll('.dep-node').forEach(n => n.style.opacity = 0);
+  s.querySelectorAll('.dpath').forEach(p => { p.style.strokeDashoffset = 400; });
+
+  await show(s);
+  tween({ dur: 800, step: v => css($('m2-kicker'), { opacity: v, top: (110 - 14 * v) + 'px' }) });
+
+  /* 卡 1：考研 408 */
+  await cardIn($('m2-c1'));
+  numRoll($('m2-n1'), 45, 1100);
+  $('m2-c1').querySelectorAll('.fill').forEach((f, i) =>
+    setTimeout(() => tween({ dur: 800, step: v => f.style.width = f.dataset.w * v + '%' }), 250 + i * 160));
+  await wait(5600);
+  await cardOut($('m2-c1'));
+
+  /* 卡 2：保研 */
+  await cardIn($('m2-c2'));
+  numRoll($('m2-n2'), 50, 1100);
+  tween({ dur: 1300, step: v => $('m2-wf').style.width = 50 * v + '%' });
+  await wait(700); css($('m2-wb'), { opacity: 1 });
+  await wait(4600);
+  await cardOut($('m2-c2'));
+
+  /* 卡 3：就业 */
+  await cardIn($('m2-c3'));
+  tween({ dur: 5200, ease: t => t, step: v => $('m2-qscroll').style.transform = `translateY(${-150 * v}px)` });
+  await wait(5400);
+  await cardOut($('m2-c3'));
+
+  /* 卡 4：学科连线 */
+  await cardIn($('m2-c4'));
+  const nodes = s.querySelectorAll('.dep-node'), paths = s.querySelectorAll('.dpath');
+  for (let i = 0; i < 4; i++) {
+    tween({ dur: 700, step: v => paths[i].style.strokeDashoffset = 400 * (1 - v) });
+    await wait(320);
+    tween({ dur: 400, step: v => css(nodes[i], { opacity: v, transform: `translateX(${(1 - v) * 30}px)` }) });
+  }
+  await wait(5200);
+  await cardOut($('m2-c4'));
+  await hide(s);
+}
+
+/* ============ M3 ============ */
+async function seg3() {
+  const s = $('m3');
+  css($('m3-book'), { opacity: 0, transform: 'translateY(calc(-50% + 50px))' });
+  ['m3-p1', 'm3-p2', 'm3-p3'].forEach(id => css($(id), { opacity: 0, transform: 'translateX(90px)' }));
+  css($('m3-dim'), { opacity: 0 });
+  css($('m3-finalq'), { opacity: 0, transform: 'translate(-50%,-50%) scale(.92)' });
+
+  await show(s);
+  await tween({ dur: 800, step: v => css($('m3-book'), { opacity: v, transform: `translateY(calc(-50% + ${50 * (1 - v)}px))` }) });
+  await wait(2600);
+  for (const id of ['m3-p1', 'm3-p2', 'm3-p3']) {
+    tween({ dur: 560, ease: t => 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2), step: v => css($(id), { opacity: Math.min(1, v), transform: `translateX(${90 * (1 - v)}px)` }) });
+    await wait(2100);
+  }
+  await wait(2400);
+  await tween({ dur: 700, step: v => css($('m3-dim'), { opacity: .82 * v }) });
+  await tween({ dur: 600, step: v => css($('m3-finalq'), { opacity: v, transform: `translate(-50%,-50%) scale(${.92 + .08 * v})` }) });
+  await wait(2600);
+  await hide(s, 600);
+}
+
+/* ============ 控制 ============ */
+const segs = [seg1, seg2, seg3];
+const hud = $('hud');
+async function run(i) {
+  if (playing) return;
+  playing = true; currentSeg = i;
+  hud.textContent = `M${i + 1} 播放中…`;
+  await segs[i]();
+  hud.textContent = `M${i + 1} 结束 · 按 1/2/3 分段 · R 重播`;
+  playing = false;
+}
+addEventListener('keydown', e => {
+  if (e.key === '1') run(0);
+  else if (e.key === '2') run(1);
+  else if (e.key === '3') run(2);
+  else if (e.key === ' ') { e.preventDefault(); run(currentSeg); }
+  else if (e.key.toLowerCase() === 'r') run(currentSeg);
+  else if (e.key.toLowerCase() === 'h') hud.style.display = hud.style.display === 'none' ? '' : 'none';
+});
+</script>
+</body>
+</html>
