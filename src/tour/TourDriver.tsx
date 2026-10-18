@@ -53,22 +53,29 @@ interface Ctx {
 export default function TourDriver() {
   const loc = useLocation()
   const nav = useNavigate()
-  const active = loc.pathname === '/tour'
   const [cursor, setCursor] = useState({ x: -100, y: -100, show: false, ripple: 0 })
   const [caption, setCaption] = useState('')
   const [hideCap, setHideCap] = useState(false)
   const [sceneName, setSceneName] = useState('')
   const ctl = useRef({ abort: false, skipWaitFlag: false, skipScene: false })
 
+  // touring 一旦激活就锁定：导览中路由会离开 /tour，叠加层必须全程可见
+  const [touring, setTouring] = useState(false)
+  const started = useRef(false)
   useEffect(() => {
-    if (!active) return
+    if (loc.pathname === '/tour') setTouring(true)
+  }, [loc.pathname])
+
+  useEffect(() => {
+    if (!touring || started.current) return
+    started.current = true
     ctl.current = { abort: false, skipWaitFlag: false, skipScene: false }
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === ' ') { e.preventDefault(); ctl.current.skipWaitFlag = true }
       else if (e.key.toLowerCase() === 's') ctl.current.skipScene = true
       else if (e.key.toLowerCase() === 'h') setHideCap((v) => !v)
-      else if (e.key === 'Escape') ctl.current.abort = true
+      else if (e.key === 'Escape') { ctl.current.abort = true; setTouring(false); started.current = false }
     }
     window.addEventListener('keydown', onKey)
 
@@ -303,9 +310,9 @@ export default function TourDriver() {
 
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active])
+  }, [touring])
 
-  if (!active) return null
+  if (!touring) return null
 
   return (
     <>
